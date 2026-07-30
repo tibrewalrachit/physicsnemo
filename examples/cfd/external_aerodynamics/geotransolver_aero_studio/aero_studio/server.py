@@ -43,7 +43,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from omegaconf import DictConfig
 
-from .engine import AeroPredictor
+from .engine import AeroPredictor, create_predictor
 from .geometry import build_visualization_payload
 from .jobs import JobManager, JobRecord
 
@@ -65,7 +65,7 @@ def create_app(cfg: DictConfig, predictor: AeroPredictor | None = None) -> FastA
     )
 
     if predictor is None:
-        predictor = AeroPredictor(cfg)
+        predictor = create_predictor(cfg)
 
     workdir = Path(cfg.server.get("workdir", "aero_studio_jobs"))
     manager = JobManager(workdir)

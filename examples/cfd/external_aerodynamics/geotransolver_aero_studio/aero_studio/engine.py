@@ -117,6 +117,32 @@ class AeroPrediction:
         }
 
 
+def attach_prediction_to_mesh(mesh, result: AeroPrediction) -> None:
+    """Attach predicted cell fields (and uncertainties) to a pyvista mesh."""
+    mesh.cell_data["PredictedPressure"] = result.pressure
+    mesh.cell_data["PredictedWallShearStress"] = result.wall_shear_stress
+    if result.pressure_std is not None:
+        mesh.cell_data["UncertaintyPressureStd"] = result.pressure_std
+        mesh.cell_data["UncertaintyWallShearStressStd"] = result.wall_shear_stress_std
+
+
+def create_predictor(cfg: DictConfig, device: str | torch.device | None = None):
+    """Build the predictor for the configured backend.
+
+    ``inference.backend: local`` (default) runs on this machine;
+    ``inference.backend: modal`` calls the GPU service deployed with
+    ``modal deploy modal_app.py`` (see :class:`aero_studio.remote.ModalAeroPredictor`).
+    """
+    backend = str(cfg.inference.get("backend", "local")).lower()
+    if backend == "modal":
+        from .remote import ModalAeroPredictor
+
+        return ModalAeroPredictor(cfg)
+    if backend != "local":
+        raise ValueError(f"Unknown inference.backend '{backend}' (local | modal)")
+    return AeroPredictor(cfg, device=device)
+
+
 class AeroPredictor:
     """STL-to-aerodynamics prediction engine backed by GeoTransolver.
 
@@ -419,13 +445,7 @@ class AeroPredictor:
         result.trained = self.trained
 
         # Attach fields to the mesh for export / visualization.
-        mesh.cell_data["PredictedPressure"] = result.pressure
-        mesh.cell_data["PredictedWallShearStress"] = result.wall_shear_stress
-        if result.pressure_std is not None:
-            mesh.cell_data["UncertaintyPressureStd"] = result.pressure_std
-            mesh.cell_data["UncertaintyWallShearStressStd"] = (
-                result.wall_shear_stress_std
-            )
+        attach_prediction_to_mesh(mesh, result)
 
         return result, mesh
 

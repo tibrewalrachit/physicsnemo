@@ -14,11 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Demo / CI configuration: a tiny untrained GeoTransolver that runs on CPU.
+# Remote-side configuration used INSIDE the Modal GPU container
+# (selected at deploy time via AERO_STUDIO_CONFIG, default this file).
 #
-# This exists so the full pipeline (upload -> preprocess -> model ->
-# integration -> visualization) can be exercised without a GPU or a
-# trained checkpoint. PREDICTIONS FROM THIS CONFIG ARE MEANINGLESS.
+# The model/data sections must match the training recipe, exactly like
+# config.yaml. The checkpoint directory points into the Modal volume
+# ("aero-studio-checkpoints", mounted at /checkpoints). Upload once with:
+#
+#   modal volume put aero-studio-checkpoints /path/to/checkpoints /geotransolver
 
 model:
   _target_: physicsnemo.experimental.models.geotransolver.GeoTransolver
@@ -26,16 +29,19 @@ model:
   global_dim: 2
   geometry_dim: 3
   out_dim: 4
-  n_layers: 2
-  n_hidden: 64
+  n_layers: 20
+  n_hidden: 256
   dropout: 0.0
-  n_head: 4
+  n_head: 8
   act: "gelu"
   mlp_ratio: 2
-  slice_num: 16
+  slice_num: 128
   use_te: false
   plus: false
-  include_local_features: false
+  include_local_features: true
+  radii: [0.01, 0.05, 0.25, 1.0, 2.5, 5.0]
+  neighbors_in_radius: [4, 8, 16, 64, 128, 256]
+  n_hidden_local: 32
   concrete_dropout: false
 
 data:
@@ -45,15 +51,15 @@ data:
   scale_invariance: true
   reference_scale: [12.0, 4.5, 3.25]
   include_geometry: true
-  geometry_sampling: 4096
+  geometry_sampling: 300000
   broadcast_global_features: false
   normalization_file: surface_fields_normalization.npz
 
 inference:
-  backend: local
-  checkpoint_dir: null
-  allow_untrained_model: true
-  chunk_size: 20000
+  backend: local  # inside the container, inference is always local
+  checkpoint_dir: /checkpoints/geotransolver
+  allow_untrained_model: false
+  chunk_size: 200000
   default_mc_samples: 0
 
 physics:

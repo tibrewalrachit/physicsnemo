@@ -52,9 +52,9 @@ def main() -> None:
 
     cfg = load_app_config(args.config)
 
-    from aero_studio.engine import AeroPredictor
+    from aero_studio.engine import create_predictor
 
-    predictor = AeroPredictor(cfg, device=args.device)
+    predictor = create_predictor(cfg, device=args.device)
     app = create_app(cfg, predictor=predictor)
 
     host = args.host or cfg.server.get("host", "0.0.0.0")

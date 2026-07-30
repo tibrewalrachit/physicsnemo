@@ -116,7 +116,55 @@ in the Studio.
 > pipeline and UI. Predictions in this mode are meaningless, and the UI
 > displays an `UNTRAINED (demo)` badge.
 
-### 5. Batch sweeps from the CLI
+### 5. Optional: serverless GPU backend on Modal (A100 / H100)
+
+If your workstation has no GPU, run inference on a serverless A100 or H100
+via [Modal](https://modal.com) while the web studio / CLI stay local. Only
+geometry bytes go up; predicted fields come back.
+
+```bash
+pip install modal "python-socks[asyncio]"
+modal token set --token-id <your-id> --token-secret <your-secret>
+
+# Deploy the GPU service (defaults: A100, conf/config_modal.yaml):
+modal deploy modal_app.py
+# ... or on an H100 / 80GB A100:
+AERO_STUDIO_GPU=H100 modal deploy modal_app.py
+AERO_STUDIO_GPU=A100-80GB modal deploy modal_app.py
+
+# Upload your trained checkpoint to the persistent volume (once):
+modal volume put aero-studio-checkpoints /path/to/checkpoints /geotransolver
+```
+
+Then flip the local config to the remote backend and launch as usual:
+
+```yaml
+inference:
+  backend: modal   # was: local
+```
+
+```bash
+python serve.py --config conf/config.yaml   # UI unchanged; inference on A100/H100
+```
+
+The remote container is configured by `conf/config_modal.yaml` (selected at
+deploy time via `AERO_STUDIO_CONFIG`); its model/data sections must match
+your checkpoint, exactly like the local config. The studio's health badge
+shows the remote device (e.g. `modal/A100 (NVIDIA A100-SXM4-40GB)`).
+A checkpoint-free demo deployment for pipeline testing:
+
+```bash
+AERO_STUDIO_MODAL_APP=geotransolver-aero-studio-demo \
+AERO_STUDIO_CONFIG=conf/config_modal_demo.yaml modal deploy modal_app.py
+```
+
+with `modal.app_name: geotransolver-aero-studio-demo` in the local config.
+You can also smoke-test a deployment directly:
+`modal run modal_app.py --stl path/to/car.stl`. Containers stay warm for
+5 minutes after a request (`scaledown_window`), so sweeps don't pay the
+cold-start cost per design.
+
+### 6. Batch sweeps from the CLI
 
 ```bash
 python cli.py designs/*.stl \
@@ -128,7 +176,7 @@ python cli.py designs/*.stl \
 Evaluates every geometry, prints Cd / Cl per design, writes a CSV summary for
 ranking variants, and optionally exports per-geometry VTP files.
 
-### 6. REST API
+### 7. REST API
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -200,9 +248,13 @@ geotransolver_aero_studio/
 │   ├── server.py      # FastAPI app (REST + static frontend)
 │   ├── jobs.py        # background job queue
 │   └── config.py      # config loading/path resolution
+├── aero_studio/remote.py  # Modal GPU backend client (backend: modal)
+├── modal_app.py       # serverless A100/H100 deployment (modal deploy)
 ├── conf/
 │   ├── config.yaml    # production config (point at your checkpoint)
 │   ├── config_demo.yaml  # tiny untrained CPU demo
+│   ├── config_modal.yaml # remote-side config for the Modal container
+│   ├── config_modal_demo.yaml # ... demo variant (untrained fallback)
 │   └── surface_fields_normalization.npz
 ├── frontend/          # browser GUI (self-contained, vendored three.js)
 │   ├── index.html     #   layout: Studio + Compare views

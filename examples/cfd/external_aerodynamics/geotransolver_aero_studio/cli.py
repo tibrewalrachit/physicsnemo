@@ -66,7 +66,7 @@ def main() -> int:
     )
 
     from aero_studio.config import load_app_config
-    from aero_studio.engine import AeroPredictor
+    from aero_studio.engine import create_predictor
 
     cfg = load_app_config(args.config)
     velocity = (
@@ -80,7 +80,7 @@ def main() -> int:
         else float(cfg.physics.get("default_air_density", 1.205))
     )
 
-    predictor = AeroPredictor(cfg, device=args.device)
+    predictor = create_predictor(cfg, device=args.device)
 
     output_dir = Path(args.output_dir) if args.output_dir else None
     if output_dir:

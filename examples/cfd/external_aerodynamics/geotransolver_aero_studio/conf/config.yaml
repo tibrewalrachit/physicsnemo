@@ -57,6 +57,11 @@ data:
   normalization_file: surface_fields_normalization.npz
 
 inference:
+  # Where inference runs: "local" (this machine) or "modal" (serverless
+  # A100/H100 deployed with 'modal deploy modal_app.py'). With the modal
+  # backend, the model/checkpoint settings above are ignored locally -
+  # the deployed app uses conf/config_modal.yaml instead.
+  backend: local
   # Directory of checkpoints saved by the transformer_models training recipe:
   checkpoint_dir: null
   # Refuse to run without a checkpoint unless explicitly allowed (demo only):
@@ -79,3 +84,8 @@ server:
   workdir: aero_studio_jobs
   max_upload_mb: 300
   viz_max_cells: 120000
+
+# Modal deployment to call when inference.backend=modal:
+modal:
+  app_name: geotransolver-aero-studio
+  class_name: AeroGPU
