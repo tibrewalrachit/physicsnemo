@@ -40,6 +40,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from omegaconf import DictConfig
 
 from .engine import AeroPredictor
@@ -205,5 +206,10 @@ def create_app(cfg: DictConfig, predictor: AeroPredictor | None = None) -> FastA
         if not index_file.exists():
             raise HTTPException(status_code=404, detail="Frontend not found")
         return FileResponse(str(index_file), media_type="text/html")
+
+    if FRONTEND_DIR.exists():
+        app.mount(
+            "/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static"
+        )
 
     return app

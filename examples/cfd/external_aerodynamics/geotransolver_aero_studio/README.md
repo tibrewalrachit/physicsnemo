@@ -88,10 +88,28 @@ python serve.py --config conf/config.yaml
 # then open http://localhost:8000
 ```
 
-Drag an STL into the browser, set velocity / density, and press
-**Run prediction**. The 3D viewer renders pressure, wall shear stress
-magnitude, and (with MC-Dropout) per-point uncertainty; the summary panel
-shows Cd, Cl, forces, and frontal area, with one-click VTP download.
+The browser GUI has two views:
+
+**Studio** — drag an STL into the browser and get an *instant local 3D
+preview* (triangle count, bounding box, and a warning if the extent doesn't
+look like a meters-scaled vehicle) before any upload. Set velocity /
+density / MC samples and press **Run prediction**. The viewer then renders
+the predicted fields (pressure, wall shear stress magnitude, and — with
+MC-Dropout — per-point uncertainty) with:
+
+- colormap selection (turbo / coolwarm / viridis / greys) and a live colorbar
+- manual or automatic color-range control
+- camera presets (iso / front / rear / side / top), wireframe toggle
+- a hover probe that reads out the field value under the cursor
+- one-click PNG screenshots and full-resolution VTP download
+
+The summary panel shows Cd, Cl, forces, frontal area, the
+pressure-vs-friction drag split, and mean uncertainty.
+
+**Compare designs** — every finished job in the session side by side: a
+sortable results table (lowest-drag design highlighted) plus Cd / Cl bar
+charts, for ranking geometry variants. Clicking a row reopens that design
+in the Studio.
 
 > **No GPU / no checkpoint?** `python serve.py --config conf/config_demo.yaml`
 > runs a tiny **untrained** model on CPU so you can exercise the entire
@@ -166,8 +184,9 @@ print(result["summary"]["dragCoefficient"])
   distribution. Consider the UQ options (MC-Dropout here; the GP head and OOD
   guard in `transformer_models`) before trusting predictions on unusual
   designs.
-- The web viewer loads `three.js` from a CDN; the server itself works fully
-  offline (API + CLI + VTP export).
+- The web GUI is fully self-contained: `three.js` (MIT-licensed) is vendored
+  under `frontend/vendor/`, so the studio works offline and behind
+  restrictive proxies.
 - The job queue is in-memory and single-worker (one GPU); restart clears
   history. For production serving, put the engine behind your own scheduler.
 
@@ -185,7 +204,13 @@ geotransolver_aero_studio/
 │   ├── config.yaml    # production config (point at your checkpoint)
 │   ├── config_demo.yaml  # tiny untrained CPU demo
 │   └── surface_fields_normalization.npz
-├── frontend/index.html   # three.js single-page viewer
+├── frontend/          # browser GUI (self-contained, vendored three.js)
+│   ├── index.html     #   layout: Studio + Compare views
+│   ├── css/app.css    #   styling
+│   ├── js/app.js      #   UI logic, jobs, compare charts
+│   ├── js/viewer.js   #   three.js scene, fields, probe, camera presets
+│   ├── js/colormaps.js
+│   └── vendor/        #   three.js r160 (MIT)
 ├── serve.py           # web server entry point
 ├── cli.py             # batch evaluation CLI
 └── requirements.txt
