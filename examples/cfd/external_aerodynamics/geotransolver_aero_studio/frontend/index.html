@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<!--
+SPDX-FileCopyrightText: Copyright (c) 2023 - 2026 NVIDIA CORPORATION & AFFILIATES.
+SPDX-FileCopyrightText: All rights reserved.
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GeoTransolver Aero Studio</title>
+<style>
+  :root {
+    --bg: #10141a; --panel: #171d26; --panel2: #1e2632; --border: #2b3648;
+    --text: #e7edf6; --muted: #8fa0b8; --accent: #76b900; --accent2: #4fc3f7;
+    --danger: #ff6b6b; --warn: #ffb84d;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  header .logo {
+    width: 12px; height: 26px; background: var(--accent); border-radius: 2px;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+  header .sub { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  header .badge {
+    margin-left: auto; font-size: 11.5px; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  header .badge.untrained { color: var(--warn); border-color: var(--warn); }
+  main { flex: 1; display: flex; min-height: 0; }
+  aside {
+    width: 320px; min-width: 280px; background: var(--panel);
+    border-right: 1px solid var(--border); padding: 16px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .card { background: var(--panel2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .card h2 { margin: 0 0 10px; font-size: 12.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  #dropzone {
+    border: 1.5px dashed var(--border); border-radius: 8px; padding: 22px 12px;
+    text-align: center; color: var(--muted); cursor: pointer; font-size: 13px;
+    transition: border-color .15s, background .15s;
+  }
+  #dropzone.drag { border-color: var(--accent); background: rgba(118,185,0,.06); }
+  #dropzone .file { color: var(--text); font-weight: 600; word-break: break-all; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input[type=number] {
+    width: 100%; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 13.5px;
+  }
+  button {
+    width: 100%; margin-top: 14px; padding: 10px; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 8px; background: var(--accent); color: #0c1200; cursor: pointer;
+  }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  #status { font-size: 12.5px; color: var(--muted); margin-top: 10px; min-height: 18px; }
+  #status.error { color: var(--danger); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border); }
+  .stat .v { font-size: 17px; font-weight: 700; color: var(--accent2); }
+  .stat .v.big { color: var(--accent); }
+  .stat .k { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .jobrow { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .jobrow:hover { color: var(--text); }
+  .jobrow .st-done { color: var(--accent); } .jobrow .st-failed { color: var(--danger); }
+  .jobrow .st-running, .jobrow .st-queued { color: var(--warn); }
+  #viewer-wrap { flex: 1; position: relative; min-width: 0; }
+  #viewer { position: absolute; inset: 0; }
+  #overlay {
+    position: absolute; top: 14px; left: 14px; display: flex; gap: 8px; align-items: center;
+    background: rgba(23,29,38,.88); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  }
+  #overlay select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; font-size: 12.5px;
+  }
+  #colorbar {
+    position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+    display: none; flex-direction: column; align-items: center; gap: 4px;
+    background: rgba(23,29,38,.88); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px;
+  }
+  #colorbar canvas { width: 16px; height: 220px; border-radius: 4px; }
+  #colorbar .t { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #placeholder {
+    position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; justify-content: center; color: var(--muted); font-size: 14px;
+    pointer-events: none; text-align: center; padding: 0 40px;
+  }
+  #spinner {
+    display: none; position: absolute; inset: 0; align-items: center; justify-content: center;
+    background: rgba(16,20,26,.55); z-index: 5; flex-direction: column; gap: 12px; color: var(--muted);
+  }
+  .ring {
+    width: 42px; height: 42px; border-radius: 50%; border: 3px solid var(--border);
+    border-top-color: var(--accent); animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
+</head>
+<body>
+<header>
+  <div class="logo"></div>
+  <h1>GeoTransolver Aero Studio</h1>
+  <span class="sub">external aerodynamics from raw geometry &middot; PhysicsNeMo</span>
+  <span class="badge" id="model-badge">connecting&hellip;</span>
+</header>
+<main>
+  <aside>
+    <div class="card">
+      <h2>Geometry</h2>
+      <div id="dropzone">
+        <div id="drop-label">Drop an <b>STL</b> here<br/>or click to browse</div>
+      </div>
+      <input type="file" id="file-input" accept=".stl,.vtp,.obj,.ply" hidden />
+      <label>Free-stream velocity (m/s)</label>
+      <input type="number" id="velocity" step="0.5" min="0.1" value="30.0" />
+      <label>Air density (kg/m&sup3;)</label>
+      <input type="number" id="density" step="0.005" min="0.01" value="1.205" />
+      <label>MC-Dropout samples (0 = deterministic)</label>
+      <input type="number" id="mc" step="1" min="0" max="100" value="0" />
+      <button id="run" disabled>Run prediction</button>
+      <div id="status"></div>
+    </div>
+    <div class="card" id="results-card" style="display:none">
+      <h2>Aerodynamic summary</h2>
+      <div class="stats">
+        <div class="stat"><div class="v big" id="cd">&ndash;</div><div class="k">Drag coeff. C<sub>d</sub></div></div>
+        <div class="stat"><div class="v big" id="cl">&ndash;</div><div class="k">Lift coeff. C<sub>l</sub></div></div>
+        <div class="stat"><div class="v" id="fd">&ndash;</div><div class="k">Drag force (N)</div></div>
+        <div class="stat"><div class="v" id="fl">&ndash;</div><div class="k">Lift force (N)</div></div>
+        <div class="stat"><div class="v" id="af">&ndash;</div><div class="k">Frontal area (m&sup2;)</div></div>
+        <div class="stat"><div class="v" id="tm">&ndash;</div><div class="k">Inference (s)</div></div>
+      </div>
+      <button class="secondary" id="download" style="display:none">Download VTP</button>
+    </div>
+    <div class="card">
+      <h2>Jobs</h2>
+      <div id="joblist" style="font-size:12px;color:var(--muted)">No jobs yet.</div>
+    </div>
+  </aside>
+  <div id="viewer-wrap">
+    <div id="viewer"></div>
+    <div id="placeholder">
+      <div style="font-size:34px">&#128663;&#8201;&#127788;</div>
+      <div>Upload a vehicle STL to predict surface pressure, wall shear stress,<br/>
+      and drag / lift coefficients in seconds.</div>
+    </div>
+    <div id="overlay" style="display:none">
+      <span style="font-size:12px;color:var(--muted)">Field</span>
+      <select id="field-select"></select>
+    </div>
+    <div id="colorbar"><div class="t" id="cb-max"></div><canvas id="cb-canvas" width="16" height="220"></canvas><div class="t" id="cb-min"></div></div>
+    <div id="spinner"><div class="ring"></div><div id="spinner-text">Running inference&hellip;</div></div>
+  </div>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (id) => document.getElementById(id);
+const api = (p) => `/api/v1${p}`;
+
+// ---------- three.js scene ----------
+const wrap = $('viewer');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+wrap.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x10141a);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 5000);
+camera.position.set(6, 4, 6);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x223044, 1.1));
+const dir = new THREE.DirectionalLight(0xffffff, 1.4);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+const grid = new THREE.GridHelper(20, 20, 0x2b3648, 0x1e2632);
+scene.add(grid);
+
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize); resize();
+(function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
+
+// ---------- colormap (turbo-like) ----------
+const STOPS = [
+  [0.0, 48, 18, 227], [0.25, 37, 199, 253], [0.5, 106, 253, 105],
+  [0.75, 251, 185, 56], [1.0, 210, 31, 38],
+];
+function colormap(t) {
+  t = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < STOPS.length; i++) {
+    if (t <= STOPS[i][0]) {
+      const [t0, r0, g0, b0] = STOPS[i - 1], [t1, r1, g1, b1] = STOPS[i];
+      const f = (t - t0) / (t1 - t0);
+      return [ (r0 + f * (r1 - r0)) / 255, (g0 + f * (g1 - g0)) / 255, (b0 + f * (b1 - b0)) / 255 ];
+    }
+  }
+  return [1, 1, 1];
+}
+function drawColorbar(min, max, unit) {
+  const cv = $('cb-canvas'), ctx = cv.getContext('2d');
+  for (let y = 0; y < cv.height; y++) {
+    const t = 1 - y / (cv.height - 1);
+    const [r, g, b] = colormap(t);
+    ctx.fillStyle = `rgb(${r * 255},${g * 255},${b * 255})`;
+    ctx.fillRect(0, y, cv.width, 1);
+  }
+  const fmt = (v) => Math.abs(v) >= 1000 ? v.toFixed(0) : v.toPrecision(3);
+  $('cb-max').textContent = `${fmt(max)} ${unit}`;
+  $('cb-min').textContent = `${fmt(min)} ${unit}`;
+  $('colorbar').style.display = 'flex';
+}
+
+// ---------- surface rendering ----------
+let meshObj = null, surfaceData = null;
+const FIELD_META = {
+  pressure: { label: 'Pressure', unit: 'Pa' },
+  wallShearStressMagnitude: { label: 'Wall shear stress |τ|', unit: 'Pa' },
+  pressureUncertainty: { label: 'Pressure uncertainty (σ)', unit: 'Pa' },
+};
+
+function showField(name) {
+  if (!surfaceData || !meshObj) return;
+  const values = surfaceData.fields[name];
+  const [min, max] = surfaceData.ranges[name];
+  const span = (max - min) || 1;
+  const colors = new Float32Array(values.length * 3);
+  for (let i = 0; i < values.length; i++) {
+    const [r, g, b] = colormap((values[i] - min) / span);
+    colors[3 * i] = r; colors[3 * i + 1] = g; colors[3 * i + 2] = b;
+  }
+  meshObj.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  meshObj.geometry.attributes.color.needsUpdate = true;
+  drawColorbar(min, max, FIELD_META[name]?.unit ?? '');
+}
+
+function renderSurface(data) {
+  surfaceData = data;
+  if (meshObj) { scene.remove(meshObj); meshObj.geometry.dispose(); meshObj.material.dispose(); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(data.positions), 3));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(data.indices), 1));
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true, metalness: 0.1, roughness: 0.75, side: THREE.DoubleSide,
+  });
+  meshObj = new THREE.Mesh(geo, mat);
+  // Orient z-up CFD data for the y-up viewer:
+  meshObj.rotation.x = -Math.PI / 2;
+  scene.add(meshObj);
+
+  const [xmin, xmax, ymin, ymax, zmin, zmax] = data.bounds;
+  const cx = (xmin + xmax) / 2, cy = (ymin + ymax) / 2, cz = (zmin + zmax) / 2;
+  const size = Math.max(xmax - xmin, ymax - ymin, zmax - zmin) || 1;
+  // Recenter after the z-up -> y-up rotation: vertex (x,y,z) lands at (x, z, -y).
+  meshObj.position.set(-cx, -zmin, cy);
+  grid.position.y = 0;
+  controls.target.set(0, (zmax - zmin) / 2, 0);
+  camera.position.set(size * 1.1, size * 0.7, size * 1.1);
+  camera.near = size / 1000; camera.far = size * 50; camera.updateProjectionMatrix();
+
+  const select = $('field-select');
+  select.innerHTML = '';
+  for (const name of Object.keys(data.fields)) {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = FIELD_META[name]?.label ?? name;
+    select.appendChild(opt);
+  }
+  $('overlay').style.display = 'flex';
+  $('placeholder').style.display = 'none';
+  showField(select.value);
+}
+$('field-select').addEventListener('change', (e) => showField(e.target.value));
+
+// ---------- upload & jobs ----------
+let currentFile = null, activeJob = null;
+const dz = $('dropzone');
+dz.addEventListener('click', () => $('file-input').click());
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', (e) => {
+  e.preventDefault(); dz.classList.remove('drag');
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+$('file-input').addEventListener('change', (e) => { if (e.target.files.length) setFile(e.target.files[0]); });
+function setFile(f) {
+  currentFile = f;
+  $('drop-label').innerHTML = `<span class="file">${f.name}</span><br/>${(f.size / 1e6).toFixed(1)} MB`;
+  $('run').disabled = false;
+}
+
+function setStatus(msg, err = false) {
+  const el = $('status'); el.textContent = msg; el.className = err ? 'error' : '';
+}
+
+$('run').addEventListener('click', async () => {
+  if (!currentFile) return;
+  $('run').disabled = true;
+  setStatus('Uploading geometry…');
+  const fd = new FormData();
+  fd.append('file', currentFile);
+  fd.append('stream_velocity', $('velocity').value);
+  fd.append('air_density', $('density').value);
+  fd.append('mc_samples', $('mc').value);
+  try {
+    const res = await fetch(api('/jobs'), { method: 'POST', body: fd });
+    if (!res.ok) throw new Error((await res.json()).detail ?? res.statusText);
+    const job = await res.json();
+    activeJob = job.jobId;
+    $('spinner').style.display = 'flex';
+    $('spinner-text').textContent = 'Running GeoTransolver inference…';
+    setStatus(`Job ${job.jobId} queued.`);
+    pollJob(job.jobId);
+  } catch (err) {
+    setStatus(`Upload failed: ${err.message}`, true);
+  } finally {
+    $('run').disabled = false;
+    refreshJobs();
+  }
+});
+
+async function pollJob(jobId) {
+  try {
+    const res = await fetch(api(`/jobs/${jobId}`));
+    const job = await res.json();
+    if (job.status === 'done') {
+      $('spinner').style.display = 'none';
+      setStatus(`Job ${jobId} finished in ${job.summary.inferenceSeconds.toFixed(2)} s.`);
+      showSummary(job);
+      const surf = await fetch(api(`/jobs/${jobId}/surface`));
+      renderSurface(await surf.json());
+      refreshJobs();
+      return;
+    }
+    if (job.status === 'failed') {
+      $('spinner').style.display = 'none';
+      setStatus(`Job failed: ${job.error}`, true);
+      refreshJobs();
+      return;
+    }
+    setStatus(`Job ${jobId}: ${job.status}…`);
+    setTimeout(() => pollJob(jobId), 1000);
+  } catch (err) {
+    $('spinner').style.display = 'none';
+    setStatus(`Polling failed: ${err.message}`, true);
+  }
+}
+
+function showSummary(job) {
+  const s = job.summary;
+  $('results-card').style.display = 'block';
+  $('cd').textContent = s.dragCoefficient.toFixed(4);
+  $('cl').textContent = s.liftCoefficient.toFixed(4);
+  $('fd').textContent = s.dragForceN.toFixed(1);
+  $('fl').textContent = s.liftForceN.toFixed(1);
+  $('af').textContent = s.frontalAreaM2.toFixed(3);
+  $('tm').textContent = s.inferenceSeconds.toFixed(2);
+  const dl = $('download');
+  dl.style.display = 'block';
+  dl.onclick = () => { window.location.href = api(`/jobs/${job.jobId}/result.vtp`); };
+}
+
+async function refreshJobs() {
+  try {
+    const jobs = await (await fetch(api('/jobs'))).json();
+    const el = $('joblist');
+    if (!jobs.length) { el.textContent = 'No jobs yet.'; return; }
+    el.innerHTML = '';
+    for (const j of jobs.slice(0, 12)) {
+      const row = document.createElement('div');
+      row.className = 'jobrow';
+      row.innerHTML = `<span>${j.filename}</span><span class="st-${j.status}">${j.status}</span>`;
+      if (j.status === 'done') row.onclick = async () => {
+        showSummary(j);
+        renderSurface(await (await fetch(api(`/jobs/${j.jobId}/surface`))).json());
+      };
+      el.appendChild(row);
+    }
+  } catch { /* server restarting; ignore */ }
+}
+
+// ---------- boot ----------
+(async function init() {
+  try {
+    const h = await (await fetch(api('/health'))).json();
+    const badge = $('model-badge');
+    badge.textContent = h.trained ? `${h.model} · ${h.device}` : `${h.model} · UNTRAINED (demo)`;
+    badge.classList.toggle('untrained', !h.trained);
+    $('velocity').value = h.defaults.streamVelocity;
+    $('density').value = h.defaults.airDensity;
+    $('mc').value = h.defaults.mcSamples;
+  } catch {
+    $('model-badge').textContent = 'server unreachable';
+  }
+  refreshJobs();
+})();
+</script>
+</body>
+</html>
