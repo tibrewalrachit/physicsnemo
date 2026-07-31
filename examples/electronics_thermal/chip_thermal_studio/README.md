@@ -92,14 +92,44 @@ with the high-fidelity solver, and reports:
 Constraints are explorable through flags, e.g. a 150 W power budget:
 `python explore.py --total-power 150 ...`.
 
-> **On the measured speedup:** this demo's stand-in solver is a compact
-> 64×64 model that runs in ~30 ms, so on CPU the surrogate shows little
-> to no speedup — `explore.py` reports whatever it actually measures.
-> The 100x+ gains of the SeaScape workflow materialize against real
-> sign-off tools (minutes to hours per analysis) and on GPU, where the
-> surrogate evaluates batched designs in well under a millisecond each
-> while the solver cost grows with fidelity. Scale `--grid` up or plug
-> in a real solver to see the gap open.
+## Measured results
+
+Numbers from this repository's recipes, exactly as reported by the
+scripts (`benchmark.py` prints whatever it measures — no extrapolation).
+
+**Accuracy.** The physics-informed input features (see above) cut error
+roughly in half at a fixed training budget, and the full recipe on a
+GPU brings field error to ~3%:
+
+| Setup | val rel-L2 | val peak-ΔT MAE |
+|---|---|---|
+| 64², 400 designs, 12 epochs, raw power-map inputs (CPU demo) | 0.240 | 21.0 K |
+| 64², 1200 designs, 12 epochs, physics features (CPU demo) | 0.115 | 14.2 K |
+| 128², 1600 designs, 40 epochs, physics features (A100, `run_on_modal.py`) | **0.028** | **2.5 K** |
+
+**Design exploration at 128² on an A100** (2000 candidates,
+30 solver-verified): 5.15 ms/design for the AI engine (batched) vs
+134 ms/design for the per-design high-fidelity solve — a **26x measured
+speedup** — with peak-ΔT MAE of **2.1 K** on the verified subset, and
+the AI-selected best floorplan verified at 46.1 K vs 45.9 K predicted.
+
+**Where the speedup does — and does not — come from.** The batched
+`benchmark.py` sweep (solver and surrogate both batched, same device)
+shows modest ratios (A100: 4.4x at 64² down to 1.5x at 512²; CPU:
+below 1x): this stand-in solver is a bare screened-Poisson CG that
+vectorizes across a batch just as well as the network does. The
+workflow-level speedup above comes from the way sign-off analyses
+actually run — one design at a time, at far higher cost per run.
+Against real thermal sign-off tools (3D, nonlinear, minutes to hours
+per analysis) the gap is orders of magnitude larger, which is the
+regime the SeaScape integration targets.
+
+To reproduce the GPU numbers in one command (Modal account required):
+
+```bash
+modal run src/run_on_modal.py --grid 128 --designs 1600 --epochs 40
+# artifacts land in outputs/modal/: exploration.png/.csv, surrogate.pt
+```
 
 ## Mapping to the SeaScape workflow
 
@@ -130,10 +160,12 @@ chip_thermal_studio/
 │   └── config_demo.yaml   # small CPU demo config
 ├── src/
 │   ├── thermal.py         # floorplan generator + FD thermal solver (CG)
-│   ├── dataset.py         # library IO, normalization, input encoding
+│   ├── dataset.py         # library IO, normalization, physics-informed encoding
 │   ├── generate_dataset.py
 │   ├── train.py           # GeoTransolver structured-2D training
-│   └── explore.py         # AI design-space sweep + solver validation
+│   ├── explore.py         # AI design-space sweep + solver validation
+│   ├── benchmark.py       # solver-vs-surrogate scaling benchmark
+│   └── run_on_modal.py    # full workflow on a Modal A100/H100
 └── requirements.txt
 ```
 
