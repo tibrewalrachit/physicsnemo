@@ -47,7 +47,13 @@ from pathlib import Path
 import modal
 
 _HERE = Path(__file__).resolve().parent
-_REPO_ROOT = _HERE.parents[3]
+try:
+    # Repo root, four levels up from this example (deploy-time, client side).
+    _REPO_ROOT = _HERE.parents[3]
+except IndexError:
+    # Inside the Modal container this module lives at /root/modal_app.py and
+    # the path constants are unused - any value works.
+    _REPO_ROOT = _HERE
 
 # Deploy-time knobs (baked into the deployment, not read in the container):
 APP_NAME = os.environ.get("AERO_STUDIO_MODAL_APP", "geotransolver-aero-studio")
