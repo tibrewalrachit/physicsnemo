@@ -77,6 +77,15 @@ with the high-fidelity solver, and reports:
 Constraints are explorable through flags, e.g. a 150 W power budget:
 `python explore.py --total-power 150 ...`.
 
+> **On the measured speedup:** this demo's stand-in solver is a compact
+> 64×64 model that runs in ~30 ms, so on CPU the surrogate shows little
+> to no speedup — `explore.py` reports whatever it actually measures.
+> The 100x+ gains of the SeaScape workflow materialize against real
+> sign-off tools (minutes to hours per analysis) and on GPU, where the
+> surrogate evaluates batched designs in well under a millisecond each
+> while the solver cost grows with fidelity. Scale `--grid` up or plug
+> in a real solver to see the gap open.
+
 ## Mapping to the SeaScape workflow
 
 | SeaScape / Modulus integration | This example |
