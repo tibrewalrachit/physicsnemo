@@ -49,6 +49,7 @@ The several examples inside PhysicsNeMo can be classified based on their domains
 |[Pre-trained DPOT for Navier-Stokes*](./cfd/navier_stokes_dpot/)|Denoising Operator Transformer|YES|
 |[Fine-tuning of DoMINO NIM](./cfd/external_aerodynamics/domino_nim_finetuning/)|DoMINO|NO|
 |[Transolver for External Aerodynamics on Irregular Meshes](./cfd/external_aerodynamics/transolver/)|Transolver|NO|
+|[GeoTransolver Aero Studio (interactive STL-to-aerodynamics: web GUI, REST API, Modal GPU backend)](./cfd/external_aerodynamics/geotransolver_aero_studio/)|GeoTransolver|NO|
 
 
 ### Weather
@@ -74,6 +75,12 @@ The several examples inside PhysicsNeMo can be classified based on their domains
 | --- | --- |
 |[Deforming Plate](./structural_mechanics/deforming_plate/)|MeshGraphNet|
 |[Machine Learning Surrogates for Automotive Crash Dynamics](./structural_mechanics/crash)|Transolver, MeshGraphNet|
+
+### Electronics Thermal
+
+|Use case|Model|
+| --- | --- |
+|[Chip Thermal Studio (SeaScape-style AI thermal design exploration)](./electronics_thermal/chip_thermal_studio/)|GeoTransolver|
 
 ### Healthcare
 
