@@ -50,6 +50,8 @@ image = (
         "torch>=2.10",
         "torchvision",
         "numpy",
+        "requests",
+        "importlib-metadata",
         "matplotlib",
         "omegaconf",
         "hydra-core",
