@@ -39,16 +39,22 @@ import torch
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
 
-from dataset import ChipThermalDataset, NormStats, load_library
+from dataset import (
+    N_GLOBAL_FEATURES,
+    N_LOCAL_FEATURES,
+    ChipThermalDataset,
+    NormStats,
+    load_library,
+)
 from physicsnemo.experimental.models.geotransolver import GeoTransolver
 
 
 def build_model(model_cfg, grid: int) -> GeoTransolver:
     """Instantiate the structured-2D GeoTransolver from config."""
     return GeoTransolver(
-        functional_dim=3,  # power + x + y
-        out_dim=1,  # temperature rise
-        global_dim=2,  # [kt, h]
+        functional_dim=N_LOCAL_FEATURES,  # power, T0, blurred T0s, x, y
+        out_dim=1,  # standardized temperature rise
+        global_dim=N_GLOBAL_FEATURES,  # [kt, h, lambda]
         structured_shape=(grid, grid),
         n_layers=int(model_cfg.n_layers),
         n_hidden=int(model_cfg.n_hidden),
@@ -167,6 +173,7 @@ def main() -> None:
                     "total_power": spec.total_power,
                     "stats": stats.to_dict(),
                     "val_metrics": metrics,
+                    "encoding_version": 2,
                 },
                 out_dir / "surrogate.pt",
             )

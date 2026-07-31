@@ -63,8 +63,8 @@ def load_surrogate(checkpoint: Path, device):
     return model, stats, spec
 
 
-@torch.no_grad()
-def surrogate_predict(model, stats, designs, device, batch: int = 64):
+@torch.inference_mode()
+def surrogate_predict(model, stats, designs, device, batch: int = 256):
     """Predict temperature fields for a list of designs -> (N, g, g) [K]."""
     fields = []
     for i in range(0, len(designs), batch):

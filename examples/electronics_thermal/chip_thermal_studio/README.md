@@ -43,9 +43,24 @@ die attached to a package/heatsink stack:
   energy-conserving to <0.1%.
 
 The surrogate is a **GeoTransolver in structured 2D mode**
-(`structured_shape=(g, g)`): local embedding = normalized power map +
-(x, y) coordinates; global embedding = standardized `[k_eff·t_die, h_eff]`;
-output = standardized temperature-rise field.
+(`structured_shape=(g, g)`) with **physics-informed input features**
+that substantially reduce error versus learning from the raw power map
+alone:
+
+- The analytic no-spreading solution `T0 = q / h_eff` is free to
+  compute and is provided as an input channel in target-standardized
+  units — the model only needs to learn how lateral spreading reshapes
+  it.
+- Additional input channels are Gaussian blurs of `T0` at fixed scales
+  (2, 4, 8, 16 cells) bracketing the thermal healing length
+  `λ = √(k_eff·t_die / h_eff)` — cheap first-order proxies for the
+  screened-Poisson spreading kernel that give the network smooth basis
+  fields to combine.
+- Global embedding = standardized `[k_eff·t_die, h_eff, λ]`.
+
+(Predicting the *residual* `ΔT − T0` instead was tested and converges
+markedly worse: `T0` is un-spread and spiky, so the residual target
+inherits its large blocky dynamic range.)
 
 ## Quick start
 
